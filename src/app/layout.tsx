@@ -36,6 +36,9 @@ export default function RootLayout({
               <Link href="/" className="hover:text-[var(--accent)] transition-colors">
                 Dashboard
               </Link>
+              <Link href="/capitalism-6" className="hover:text-[var(--accent)] transition-colors">
+                Capitalism 6.0
+              </Link>
               <Link href="/methodology" className="hover:text-[var(--accent)] transition-colors">
                 Methodology
               </Link>
