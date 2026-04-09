@@ -89,6 +89,7 @@ export function evaluateIndicator(
       definition,
       observations,
       changePct: null,
+      annualizedTrendPct: null,
       trend: "unknown",
       summary: "Not enough data points in this window.",
     };
