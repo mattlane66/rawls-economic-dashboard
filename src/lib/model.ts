@@ -9,8 +9,56 @@ export interface IndicatorResult {
   definition: IndicatorDefinition;
   observations: Observation[];
   changePct: number | null;
+  /** Approximate annualized log trend (% per year) when defined */
+  annualizedTrendPct: number | null;
   trend: "supportive" | "neutral" | "tension" | "unknown";
   summary: string;
+}
+
+function yearsBetween(a: Date, b: Date): number {
+  return (b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+}
+
+/**
+ * Fit a simple OLS line to log(values) over time and return the slope
+ * in log-units per calendar year. If values are not strictly positive
+ * or there are too few distinct time points, returns null.
+ */
+function logTrendPerYear(observations: Observation[]): number | null {
+  if (observations.length < 2) return null;
+
+  const parsed = observations
+    .map((o) => {
+      const v = o.value;
+      const d = new Date(o.date);
+      return Number.isFinite(v) && v > 0 && !Number.isNaN(d.getTime())
+        ? { t: d, v }
+        : null;
+    })
+    .filter((x): x is { t: Date; v: number } => x !== null);
+
+  if (parsed.length < 2) return null;
+
+  const t0 = parsed[0]!.t;
+  const xs = parsed.map((p) => yearsBetween(t0, p.t));
+  const ys = parsed.map((p) => Math.log(p.v));
+
+  const n = xs.length;
+  const meanX = xs.reduce((a, x) => a + x, 0) / n;
+  const meanY = ys.reduce((a, y) => a + y, 0) / n;
+
+  let num = 0;
+  let den = 0;
+  for (let i = 0; i < n; i += 1) {
+    const dx = xs[i]! - meanX;
+    const dy = ys[i]! - meanY;
+    num += dx * dy;
+    den += dx * dx;
+  }
+
+  if (den === 0) return null;
+  const slope = num / den; // log-units per year
+  return slope;
 }
 
 function pctChange(first: number, last: number): number {
@@ -50,16 +98,37 @@ export function evaluateIndicator(
   const first = sorted[0]!.value;
   const last = sorted[sorted.length - 1]!.value;
   const change = pctChange(first, last);
-  const trend = classifyTrend(change, definition.polarity);
+  const slope = logTrendPerYear(sorted);
 
-  const directionWord = change >= 0 ? "rose" : "fell";
+  const annualizedTrendPct =
+    slope === null ? null : (Math.exp(slope) - 1) * 100;
+
+  const trendSource = annualizedTrendPct ?? change;
+  const trend = classifyTrend(trendSource, definition.polarity);
+
+  const directionWord =
+    annualizedTrendPct !== null
+      ? annualizedTrendPct >= 0
+        ? "has tended to rise"
+        : "has tended to fall"
+      : change >= 0
+        ? "rose"
+        : "fell";
+
   const polarityPhrase = definition.polarity.replace(/_/g, " ");
-  const summary = `Over the selected window, the series ${directionWord} by about ${Math.abs(change).toFixed(1)}%. Given this indicator’s polarity (${polarityPhrase}), that is read as ${trend} for the simple proxy model.`;
+
+  const magnitudeText =
+    annualizedTrendPct !== null
+      ? `${Math.abs(annualizedTrendPct).toFixed(2)}% per year (log trend)`
+      : `${Math.abs(change).toFixed(1)}% over the window`;
+
+  const summary = `Over the selected window, the series ${directionWord} at roughly ${magnitudeText}. Given this indicator’s polarity (${polarityPhrase}), that is read as ${trend} for the simple proxy model.`;
 
   return {
     definition,
     observations: sorted,
     changePct: change,
+    annualizedTrendPct,
     trend,
     summary,
   };

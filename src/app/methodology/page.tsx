@@ -34,12 +34,20 @@ export default function MethodologyPage() {
           to <strong className="text-[var(--foreground)]">empirical proxies</strong> for how the worst off might be
           doing. Each series has a declared polarity (for example, lower unemployment as better for a narrow labor
           market proxy). The app measures percentage change from the first to the last observation in your chosen
-          window and labels the move as supportive, neutral, or in tension with that polarity when the move is large
-          enough.
+          window and fits a simple log trend over time, then labels that trend as supportive, neutral, or in tension
+          with the declared polarity when it is large enough.
         </p>
         <p>
-          The composite label is a simple majority vote across indicators with known trends. It is a conversation
-          starter, not a social welfare function.
+          In spirit with a “Capitalism 6.0” lens, the least advantaged here are read as those whose{" "}
+          <span className="text-[var(--foreground)]">opportunity foundation</span> is most fragile: people in (or near)
+          poverty, precarious workers, and communities whose access to basics like income, work, housing, broadband and
+          transport is structurally thin. The app cannot see domination directly, so it tracks whether key aggregates
+          look more like floor-raising or floor-eroding.
+        </p>
+        <p>
+          The composite label that appears at the top is a simple heuristic summary. Below it, you can change which
+          indicators count and how heavily they are weighted; the “your weighting” line applies the same rule to your
+          chosen subset, making the value judgments about what matters explicit.
         </p>
       </section>
 
